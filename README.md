@@ -1,101 +1,130 @@
 # Team Ubuntu Environment
 
-A shared Ubuntu 22.04 desktop that runs in Docker and opens in your browser.
+A shared **Ubuntu 22.04 desktop that runs in Docker and opens in your web browser**. Everyone builds it from the same files, so every teammate gets the identical setup on **Windows, Linux or macOS**.
 
 **Includes:** XFCE desktop, Terminator, VS Code, ROS 2 Humble, Gazebo Harmonic, Python 3, build tools (gcc, cmake, gdb, git).
 
-Everyone builds the same image from the same files, so the environment is identical on every machine.
+---
+
+## Quick start
+
+| Step | Windows | Linux |
+|---|---|---|
+| 1. Install Docker | [Docker Desktop](https://www.docker.com/products/docker-desktop/) (keep **WSL 2** ticked), restart, open it | `curl -fsSL https://get.docker.com \| sh` then `sudo usermod -aG docker $USER` and **log out/in** |
+| 2. Get the files | `git clone https://github.com/batharva/team-env.git` | `git clone https://github.com/batharva/team-env.git` |
+| 3. Build (once) | `cd team-env` then `docker compose build` | `cd team-env` then `docker compose build` |
+| 4. Start | `docker compose up -d` | `docker compose up -d` |
+| 5. Open | http://localhost:6080/vnc.html | http://localhost:6080/vnc.html |
+
+Click **Connect**. Password: **team1234**
+
+The first build takes **15 to 30 minutes** and downloads several GB. Later builds are much faster.
 
 ---
 
 ## 1. Requirements
 
-- **Docker** with the Compose plugin
-  - Linux: `curl -fsSL https://get.docker.com | sh`
-  - Windows: Docker Desktop with the WSL2 backend (extract this folder inside WSL, not on `C:\`)
-  - macOS: Docker Desktop
-- About **15 GB free disk space** and **8 GB RAM** recommended
+- 15 GB free disk space, 8 GB RAM recommended
 - Internet connection for the first build
-
-Check Docker works:
-
-```bash
-docker run hello-world
-```
-
-On Linux, prefix the commands below with `sudo` (or add yourself to the docker group: `sudo usermod -aG docker $USER`, then log out and in).
+- Git (to clone) or download the repo as a ZIP from GitHub (**Code > Download ZIP**)
 
 ---
 
-## 2. First-time setup
+## 2. Windows setup (detailed)
+
+1. **Enable virtualization** in BIOS if Docker Desktop complains (look for "Intel VT-x" or "AMD-V"/"SVM").
+2. **Install Docker Desktop** from docker.com. Keep **"Use WSL 2 instead of Hyper-V"** ticked. Restart when asked.
+3. Open Docker Desktop and wait until it says **Engine running** (bottom-left, green).
+4. **Install Git** from https://git-scm.com/download/win if you don't have it.
+5. Open **PowerShell** (or Windows Terminal) and run:
+   ```powershell
+   cd $HOME\Documents
+   git clone https://github.com/batharva/team-env.git
+   cd team-env
+   docker compose build
+   docker compose up -d
+   docker compose ps
+   ```
+6. Open http://localhost:6080/vnc.html, click **Connect**, password `team1234`.
+
+**Better performance (recommended):** use the WSL Ubuntu terminal instead of PowerShell. Run `wsl --install -d Ubuntu` once in an admin PowerShell, reboot, open "Ubuntu" from the Start menu, and do the clone/build/up steps there under `~/team-env`. Files inside the WSL filesystem are much faster than files under `C:\`. In Docker Desktop, enable **Settings > Resources > WSL Integration > Ubuntu**.
+
+**Line-ending warning:** `start.sh` must use LF line endings. The repo's `.gitattributes` handles this automatically when you use `git clone`. If you downloaded a ZIP and edited `start.sh` in Notepad, open it in VS Code, click `CRLF` at the bottom-right, switch to `LF`, save, then rebuild.
+
+---
+
+## 3. Linux setup (detailed)
 
 ```bash
-unzip team-env.zip
+# Install Docker
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker $USER
+# Log out and log in again, then verify:
+docker run hello-world
+
+# Get and run the environment
+git clone https://github.com/batharva/team-env.git
 cd team-env
 docker compose build
 docker compose up -d
+docker compose ps
 ```
 
-The first build takes **15 to 30 minutes** and downloads several GB (ROS 2 and Gazebo are large). Later builds reuse the cache and are much faster.
+If you skipped the `usermod` step or didn't log out and in, put `sudo` in front of every `docker` command.
+
+**Different user ID:** the container user has UID 1000, which matches the first user on most systems. Check with `id -u`. If yours is different, build with:
+```bash
+docker compose build --build-arg UID=$(id -u)
+```
 
 ---
 
-## 3. Open the desktop
+## 4. Test that everything works
 
-1. Wait about 5 seconds after `up -d`.
-2. Open **http://localhost:6080/vnc.html** in your browser.
-3. Click **Connect**.
-4. Password: **team1234**
-
-The port is bound to `127.0.0.1`, so only your own machine can reach it.
-
----
-
-## 4. Test the tools
-
-Open **Terminator** (Applications menu) and run:
+Open **Terminator** from the Applications menu inside the browser desktop and run:
 
 ```bash
-ros2 run demo_nodes_cpp talker     # ROS 2
+ros2 run demo_nodes_cpp talker     # ROS 2 (Ctrl+C to stop)
 gz sim shapes.sdf                  # Gazebo Harmonic
 code .                             # VS Code
 ```
 
-Gazebo uses software rendering (no GPU in a browser session). The first launch is slow and a black window for a short while is normal. Keep simulation scenes simple.
+Gazebo uses software rendering (no GPU in a browser session). The first launch is slow and a black window for a while is normal. Keep scenes simple.
 
 ---
 
 ## 5. Your files
 
-Put your work in the `workspace/` folder next to `docker-compose.yml`. It is the same folder as `~/workspace` inside the desktop.
+Put your work in the **`workspace/`** folder inside `team-env`. It appears as `~/workspace` in the desktop.
 
-- Files in `workspace/` **survive** stopping, removing and rebuilding the container.
-- Anything installed with `apt` inside the running container is **lost** when the container is removed. If the whole team needs a tool, add it to the `Dockerfile` and rebuild.
+- Files in `workspace/` **survive** stop, remove and rebuild.
+- Software you install with `apt` inside the container is **lost** when the container is removed. If the whole team needs a tool, add it to the `Dockerfile` and rebuild.
 
 ---
 
 ## 6. Daily commands
 
-Run **one** of these at a time (they are alternatives, not a script):
+Run **one at a time** (they are alternatives, not a script). Same on Windows and Linux; add `sudo` on Linux if needed.
 
 | Goal | Command |
 |---|---|
 | Start | `docker compose up -d` |
 | Stop (keeps container) | `docker compose stop` |
 | Start again after stop | `docker compose start` |
-| Remove container (workspace files stay) | `docker compose down` |
-| Shell inside the container | `docker exec -it team-dev bash` |
+| Remove container (workspace stays) | `docker compose down` |
+| Logs | `docker compose logs --tail 50 dev` |
+| Shell inside container | `docker exec -it team-dev bash` |
 | Shell as root | `docker exec -it -u root team-dev bash` |
-| View logs | `docker compose logs --tail 50 dev` |
-| Rebuild after changing Dockerfile or start.sh | `docker compose build && docker compose up -d` |
+| Rebuild after changing Dockerfile or start.sh | `docker compose build` then `docker compose up -d` |
+| Get the latest version from GitHub | `git pull` then rebuild as above |
 
-Do not use `docker compose run dev`. It creates a separate throwaway container without the published port.
+Don't use `docker compose run dev`. It creates a separate container without the port published.
 
 ---
 
 ## 7. Customization
 
-**Your own VNC password** (max 8 characters, VNC ignores the rest): create a file named `.env` next to `docker-compose.yml`:
+**Your own VNC password** (max 8 characters; VNC ignores the rest). Create a file named `.env` next to `docker-compose.yml`:
 
 ```
 VNC_PASSWORD=mypass12
@@ -105,7 +134,7 @@ Then run `docker compose up -d`.
 
 **Screen size:** change `RESOLUTION: 1600x900` in `docker-compose.yml`.
 
-**Different port:** change `"127.0.0.1:6080:6080"` to e.g. `"127.0.0.1:6081:6080"` and open port 6081.
+**Different port:** change `"127.0.0.1:6080:6080"` to `"127.0.0.1:6081:6080"` and browse to port 6081.
 
 ---
 
@@ -113,23 +142,27 @@ Then run `docker compose up -d`.
 
 | Problem | Fix |
 |---|---|
+| `docker: command not found` (Windows) | Open Docker Desktop and wait for "Engine running". Reopen the terminal. |
+| `error during connect` / `cannot connect to the Docker daemon` | Docker is not running. Start Docker Desktop (Windows) or run `sudo systemctl start docker` (Linux). |
+| `permission denied ... docker.sock` (Linux) | Use `sudo`, or run the `usermod` step and log out/in. |
 | Page does not load | Run `docker compose ps`. Status must be `Up`. Check `docker compose logs dev`. |
-| Container keeps restarting | Read the logs. On Windows, `start.sh` may have CRLF line endings: open it in VS Code, set the line ending to **LF**, save, rebuild. |
-| `/start.sh: not found` | Same CRLF issue as above. |
-| `port is already allocated` | Port 6080 is in use. Change the port as in section 7. |
-| `Permission denied` in `workspace/` | Your Linux user ID is not 1000. Check with `id -u` and build with `docker compose build --build-arg UID=$(id -u)`. |
-| Gazebo window black or crashes | Make sure `shm_size: "2gb"` is in `docker-compose.yml`. Try `gz sim -s` (server only) to isolate rendering problems. |
+| Container keeps restarting | Read the logs. Check `start.sh` uses LF line endings (see Windows section). |
+| `/start.sh: not found` | CRLF line endings. Fix as described in the Windows section, then rebuild. |
+| `port is already allocated` | Port 6080 is in use. Change the port (section 7). |
+| `Permission denied` in `workspace/` | Your Linux UID is not 1000. Rebuild with `--build-arg UID=$(id -u)`. |
+| Gazebo black window or crash | Check `shm_size: "2gb"` is in `docker-compose.yml`. Try `gz sim -s` to isolate rendering problems. |
 | `xauth: .Xauthority does not exist` in logs | Harmless first-run message. Ignore it. |
-| Build fails while downloading packages | Check your internet connection and rerun `docker compose build`. Finished steps are cached. |
-| Apple Silicon / ARM CPU | In the `Dockerfile`, change the three `arch=amd64` entries to `arch=arm64`. Some packages may not be available for ARM. |
+| Build fails while downloading | Check your internet and rerun `docker compose build`. Finished steps are cached. |
+| Docker Desktop says WSL 2 is missing (Windows) | Run `wsl --update` in an admin PowerShell, then restart Docker Desktop. |
 | Out of disk space | `docker system df` to inspect, `docker builder prune` to clear the build cache. |
+| Apple Silicon / ARM CPU | In the `Dockerfile` change the three `arch=amd64` entries to `arch=arm64`. Some packages may not exist for ARM. |
 
 ---
 
 ## 9. Security notes
 
-- The default password `team1234` is shared. That is fine because the port is only reachable from your own machine.
-- Do **not** change the port mapping to `0.0.0.0` or expose 6080 to the internet. If you need remote access, use an SSH tunnel:
+- The default password `team1234` is shared. That is fine because the port is bound to `127.0.0.1`, so only your own machine can connect.
+- Do **not** change the port mapping to `0.0.0.0` or expose 6080 to the internet. For remote access, use an SSH tunnel:
   ```bash
   ssh -L 6080:localhost:6080 user@server
   ```
@@ -137,13 +170,28 @@ Then run `docker compose up -d`.
 
 ---
 
-## 10. Files in this folder
+## 10. What's in this repo
 
 | File | Purpose |
 |---|---|
 | `Dockerfile` | Defines the image: Ubuntu, desktop, VNC, VS Code, ROS 2, Gazebo |
-| `start.sh` | Starts the VNC server and the browser gateway when the container launches |
-| `docker-compose.yml` | Ports, password default, shared memory, workspace mount |
+| `start.sh` | Starts the VNC server and browser gateway when the container launches |
+| `docker-compose.yml` | Port, password default, shared memory, workspace mount |
 | `.dockerignore` | Keeps `workspace/` and `.env` out of the build |
-| `.gitattributes`, `.gitignore` | Only needed if this folder is put in Git |
+| `.gitattributes` | Forces LF line endings so `start.sh` works on Windows |
+| `.gitignore` | Keeps your `.env` and workspace files out of Git |
+| `setup-commands.txt` | Plain-text copy of the setup commands |
 | `workspace/` | Your files (persistent) |
+
+---
+
+## Updating the environment (maintainers)
+
+```bash
+# edit Dockerfile / start.sh, then:
+git add .
+git commit -m "Describe the change"
+git push
+```
+
+Teammates run `git pull`, `docker compose build`, `docker compose up -d`.
