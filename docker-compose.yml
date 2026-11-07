@@ -1,0 +1,14 @@
+services:
+  dev:
+    build: .
+    image: team-env:1.1
+    container_name: team-dev
+    shm_size: "2gb"
+    environment:
+      VNC_PASSWORD: ${VNC_PASSWORD:-team1234}
+      RESOLUTION: 1600x900
+    volumes:
+      - ./workspace:/home/dev/workspace
+    ports:
+      - "127.0.0.1:6080:6080"
+    restart: unless-stopped

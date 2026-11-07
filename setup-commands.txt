@@ -1,0 +1,79 @@
+TEAM UBUNTU ENVIRONMENT - SETUP COMMANDS
+=========================================
+
+1. INSTALL DOCKER FIRST
+   Windows / Mac: install Docker Desktop from docker.com and open it
+                  (wait until it says "Engine running").
+   Linux only, run:
+
+   curl -fsSL https://get.docker.com | sh
+   sudo usermod -aG docker $USER
+
+   Then log out and log in again.
+
+
+2. EXTRACT THE ZIP AND GO INTO THE FOLDER
+
+   unzip team-env.zip
+   cd team-env
+
+   (Windows: right-click the zip > Extract All, open the team-env folder,
+   click the address bar, type cmd and press Enter.)
+
+
+3. BUILD (only once, takes 15-30 minutes, downloads several GB)
+
+   docker compose build
+
+
+4. START
+
+   docker compose up -d
+
+
+5. CHECK IT IS RUNNING (status must say "Up")
+
+   docker compose ps
+
+
+6. OPEN IN BROWSER
+
+   http://localhost:6080/vnc.html
+
+   Click Connect.
+   Password: team1234
+
+
+7. TEST INSIDE THE DESKTOP (open Terminator from the Applications menu)
+
+   ros2 run demo_nodes_cpp talker
+
+   If messages like "Publishing: Hello World" scroll by, it works.
+   Press Ctrl+C to stop.
+
+
+DAILY USE
+---------
+   Start:   docker compose up -d
+   Stop:    docker compose stop
+   Then open http://localhost:6080/vnc.html again.
+
+   Save your work in the "workspace" folder inside team-env.
+   It stays safe even if the container is stopped or removed.
+
+
+NOTES
+-----
+   - On Linux put "sudo" before each docker command if you skipped the
+     usermod step or did not log out and in afterwards.
+   - Windows: if you see "/start.sh: not found", open start.sh in VS Code,
+     change line endings from CRLF to LF, save, then run:
+        docker compose build
+        docker compose up -d
+   - Port 6080 busy: edit docker-compose.yml and change
+     "127.0.0.1:6080:6080" to "127.0.0.1:6081:6080", then use port 6081
+     in the browser.
+   - Apple Silicon / ARM CPU: in the Dockerfile change the three
+     arch=amd64 entries to arch=arm64.
+   - If anything fails, send a screenshot of the last 15 lines of the
+     terminal output, and see README.md for more help.
